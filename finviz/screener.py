@@ -5,7 +5,7 @@ from urllib.parse import parse_qs as urlparse_qs
 from urllib.parse import urlencode, urlparse
 
 from bs4 import BeautifulSoup
-
+from pandas import DataFrame
 import finviz.helper_functions.scraper_functions as scrape
 from finviz.helper_functions.display_functions import create_table_string
 from finviz.helper_functions.error_handling import InvalidTableType, NoResults
@@ -357,7 +357,6 @@ class Screener(object):
 
                         ticker_generic.update(value[0])
                         self.analysis.extend(value[1])
-
         return self.data
 
     def __check_rows(self):
@@ -403,3 +402,22 @@ class Screener(object):
                 data.append(row)
 
         return data
+
+    def to_df(self):
+        """
+        return the data as a datframe for in memory analysis 
+        """
+        return DataFrame(self.data)
+
+    def get_ticker_details_df(self):
+        """
+        Downloads the details of all tickers shown by the Screener.
+        """
+        base_url = 'https://finviz.com/quote.ashx?'
+        ticker_urls = [f"{base_url}&t={row.get('Ticker')}" for row in self.data]
+        ticker_data = sequential_data_scrape(scrape.download_ticker_details, ticker_urls, self._delay)
+        quote_data = []
+        for quote in ticker_data:
+            quote[list(quote.keys())[0]][0]['Ticker'] = list(quote.keys())[0]
+            quote_data.append(quote[list(quote.keys())[0]][0])
+        return DataFrame(quote_data)
